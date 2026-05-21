@@ -1,0 +1,862 @@
+```html
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>중국어 한자 배열 학습기</title>
+<!-- Tailwind CSS -->
+<script src="https://cdn.tailwindcss.com"></script>
+<!-- FontAwesome Icons -->
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700;900&family=Noto+Sans+SC:wght@400;500;700;900&display=swap');
+
+body {
+font-family: 'Noto Sans KR', sans-serif;
+}
+
+.chinese-font {
+font-family: 'Noto Sans SC', sans-serif;
+}
+
+/* 드래그 애니메이션 및 스타일 */
+.draggable-card {
+transition: transform 0.2s, box-shadow 0.2s;
+user-select: none;
+}
+
+.draggable-card:active {
+transform: scale(1.05);
+box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+}
+
+.ghost {
+opacity: 0.4;
+border: 2px dashed #9ca3af;
+}
+</style>
+</head>
+<body class="bg-slate-50 min-h-screen flex flex-col">
+
+<!-- 헤더 -->
+<header class="bg-gradient-to-r from-blue-600 to-indigo-700 text-white shadow-md">
+<div class="max-w-4xl mx-auto px-4 py-4 flex flex-col sm:flex-row justify-between items-center gap-3">
+<div class="flex items-center gap-3">
+<div class="bg-white text-indigo-700 p-2 rounded-lg shadow-inner">
+<i class="fa-solid fa-language text-2xl"></i>
+</div>
+<div>
+<h1 class="text-xl font-bold tracking-tight">중국어 본문 외우기 마스터</h1>
+<p class="text-xs text-indigo-100">한자를 드래그하여 문장을 올바르게 배열하세요!</p>
+</div>
+</div>
+
+<!-- 테마 셀렉터 -->
+<div class="relative w-full sm:w-auto">
+<select id="chapter-select" class="w-full sm:w-64 bg-indigo-800 text-white border border-indigo-500 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-white cursor-pointer">
+<option value="0">1과: 중국어 대화 (장웨이 & 미나)</option>
+<option value="1">2과: 자기소개 (왕리)</option>
+<option value="2">3과: 새 학기 안부 인사</option>
+</select>
+</div>
+</div>
+</header>
+
+<!-- 메인 컨텐츠 -->
+<main class="flex-grow max-w-4xl w-full mx-auto px-4 py-6 flex flex-col gap-6">
+
+<!-- 진척도 및 상태 정보 -->
+<div class="bg-white rounded-2xl p-4 shadow-sm border border-slate-100 flex justify-between items-center">
+<div class="flex items-center gap-2">
+<span class="text-xs font-bold bg-indigo-50 text-indigo-600 px-2.5 py-1 rounded-full uppercase tracking-wider" id="chapter-badge">1과</span>
+<h2 class="text-sm font-bold text-slate-700" id="chapter-title">중국어 대화</h2>
+</div>
+<div class="flex items-center gap-4">
+<!-- 진행도 바 -->
+<div class="hidden sm:flex items-center gap-2">
+<div class="w-24 bg-slate-100 rounded-full h-2">
+<div id="progress-bar" class="bg-emerald-500 h-2 rounded-full transition-all duration-300" style="width: 0%"></div>
+</div>
+<span class="text-xs font-medium text-slate-500" id="progress-text">0/0</span>
+</div>
+<!-- 점수 -->
+<div class="bg-amber-50 text-amber-700 px-3 py-1 rounded-lg text-xs font-bold flex items-center gap-1.5 border border-amber-100">
+<i class="fa-solid fa-star"></i>
+<span>성공: <span id="score-counter">0</span>개</span>
+</div>
+</div>
+</div>
+
+<!-- 문제 카드 영역 -->
+<div class="bg-white rounded-2xl p-6 shadow-md border border-slate-100 flex flex-col gap-6 relative overflow-hidden">
+<!-- 배경 장식 (성공 시 반짝임용) -->
+<div id="success-overlay" class="absolute inset-0 bg-emerald-500/10 pointer-events-none opacity-0 transition-opacity duration-300 flex items-center justify-center z-10">
+<div class="bg-white/95 px-6 py-4 rounded-2xl shadow-xl border border-emerald-100 text-center scale-90 transition-transform duration-300" id="success-box">
+<i class="fa-solid fa-circle-check text-4xl text-emerald-500 mb-2"></i>
+<p class="font-bold text-emerald-800 text-lg">참 잘했습니다!</p>
+<p class="text-xs text-emerald-600 mt-1">다음 문제로 이동합니다.</p>
+</div>
+</div>
+
+<!-- 상단 문제 가이드 -->
+<div class="flex flex-col gap-3">
+<div class="flex justify-between items-start">
+<span class="bg-slate-100 text-slate-600 font-bold text-xs px-2 py-1 rounded-md" id="question-index">문제 1 / 6</span>
+<!-- 도움말 버튼 -->
+<div class="flex gap-2">
+<button id="btn-pronounce" class="bg-slate-50 hover:bg-slate-100 text-slate-600 p-2 rounded-lg text-xs font-semibold flex items-center gap-1 transition">
+<i class="fa-solid fa-ear-listen"></i> 한국어 발음 보기
+</button>
+<button id="btn-hint" class="bg-slate-50 hover:bg-slate-100 text-slate-600 p-2 rounded-lg text-xs font-semibold flex items-center gap-1 transition">
+<i class="fa-solid fa-lightbulb"></i> 힌트
+</button>
+</div>
+</div>
+
+<!-- 한국어 뜻 (질문) -->
+<div class="bg-slate-50 rounded-xl p-4 border border-slate-100">
+<p class="text-xs text-slate-400 font-bold uppercase mb-1">한국어 뜻</p>
+<p class="text-lg font-bold text-slate-800" id="korean-meaning">한국어 뜻이 여기에 들어옵니다.</p>
+<p class="text-sm font-medium text-indigo-600 mt-2 hidden" id="korean-pronounce">한글 발음이 여기에 들어옵니다.</p>
+</div>
+</div>
+
+<!-- 배열할 영역 (조립대) -->
+<div class="flex flex-col gap-2">
+<div class="flex justify-between items-center">
+<p class="text-xs text-slate-400 font-bold uppercase">여기에 알맞게 조립하세요 (드래그하거나 블록을 탭하세요)</p>
+<button id="btn-reset" class="text-xs text-red-500 hover:text-red-600 font-bold flex items-center gap-1">
+<i class="fa-solid fa-rotate-right"></i> 초기화
+</button>
+</div>
+<!-- 정답 단어들이 배치되는 곳 -->
+<div id="assembly-zone" class="bg-slate-100/60 border-2 border-dashed border-slate-300 min-h-[80px] rounded-2xl p-3 flex flex-wrap gap-2.5 items-center justify-center transition-all duration-200">
+<!-- 비어있을 때 표시할 메시지 -->
+<p id="placeholder-text" class="text-slate-400 text-xs font-medium pointer-events-none select-none">아래의 한자 조각들을 터치하여 올려놓거나 직접 드래그하세요.</p>
+</div>
+</div>
+
+<!-- 선택 가능한 한자 조각 공급 영역 -->
+<div class="flex flex-col gap-2">
+<p class="text-xs text-slate-400 font-bold uppercase">한자 카드</p>
+<div id="words-source-zone" class="bg-slate-50 border border-slate-100 min-h-[80px] rounded-2xl p-3 flex flex-wrap gap-2.5 items-center justify-center">
+<!-- 한자 조각들이 랜덤하게 배치됨 -->
+</div>
+</div>
+
+<!-- 힌트 모달/메시지 영역 -->
+<div id="hint-display" class="bg-amber-50 border border-amber-100 text-amber-800 text-xs rounded-xl p-3 flex items-start gap-2.5 hidden">
+<i class="fa-solid fa-circle-info text-amber-500 mt-0.5 text-base"></i>
+<div>
+<p class="font-bold">한자 힌트</p>
+<p class="mt-0.5 chinese-font text-sm tracking-wider font-semibold" id="hint-text">중국어 본문 힌트</p>
+</div>
+</div>
+
+<!-- 정답 확인 및 다음 버튼 -->
+<div class="flex justify-between items-center pt-2 border-t border-slate-100">
+<div id="validation-message" class="text-sm font-bold flex items-center gap-1.5">
+<!-- 상태 메시지 (대기중, 틀림 등) -->
+</div>
+<div class="flex gap-2">
+<button id="btn-check" class="bg-indigo-600 hover:bg-indigo-700 text-white px-5 py-2.5 rounded-xl text-sm font-bold shadow-md shadow-indigo-100 transition flex items-center gap-1.5">
+<i class="fa-solid fa-check"></i> 정답 확인
+</button>
+<button id="btn-next" class="bg-emerald-600 hover:bg-emerald-700 text-white px-5 py-2.5 rounded-xl text-sm font-bold shadow-md shadow-emerald-100 transition flex items-center gap-1.5 hidden">
+<span>다음 문제</span> <i class="fa-solid fa-arrow-right"></i>
+</button>
+</div>
+</div>
+
+</div>
+
+<!-- 이전/다음 탐색 네비게이션 -->
+<div class="flex justify-between items-center px-2">
+<button id="btn-prev-question" class="text-xs font-bold text-slate-500 hover:text-slate-800 flex items-center gap-1 py-1.5 px-3 rounded-lg hover:bg-slate-100 transition">
+<i class="fa-solid fa-chevron-left"></i> 이전 문제로
+</button>
+<div class="flex gap-1" id="question-dots">
+<!-- 닷 내비게이션 -->
+</div>
+<button id="btn-next-question" class="text-xs font-bold text-slate-500 hover:text-slate-800 flex items-center gap-1 py-1.5 px-3 rounded-lg hover:bg-slate-100 transition">
+다음 문제로 <i class="fa-solid fa-chevron-right"></i>
+</button>
+</div>
+
+<!-- 단어장 정보 카드 -->
+<div class="bg-white rounded-2xl p-5 shadow-sm border border-slate-100 flex flex-col gap-3">
+<h3 class="text-sm font-bold text-slate-700 flex items-center gap-1.5">
+<i class="fa-solid fa-book-open text-indigo-500"></i>
+<span>이과의 주요 어휘 & 문법 공부하기</span>
+</h3>
+<div class="grid grid-cols-1 md:grid-cols-2 gap-3" id="grammar-tips">
+<!-- 과에 맞춰서 팁이 동적으로 주입됨 -->
+</div>
+</div>
+
+</main>
+
+<!-- 완료 전체 팝업 (모달) -->
+<div id="congratulations-modal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
+<div class="bg-white rounded-3xl p-6 max-w-sm w-full shadow-2xl text-center flex flex-col items-center gap-4 border border-slate-100 scale-95 transition-transform">
+<div class="w-16 h-16 bg-amber-100 text-amber-500 rounded-full flex items-center justify-center text-3xl animate-bounce">
+<i class="fa-solid fa-crown"></i>
+</div>
+<div>
+<h3 class="text-xl font-bold text-slate-800">단원 정복 완료!</h3>
+<p class="text-xs text-slate-500 mt-1">모든 문제를 성공적으로 다 맞추셨습니다!</p>
+</div>
+<!-- 점수 디스플레이 -->
+<div class="bg-indigo-50 text-indigo-700 px-6 py-3 rounded-2xl w-full">
+<p class="text-xs font-semibold">학습 단원</p>
+<p class="text-sm font-bold mt-0.5" id="modal-chapter-name">1과: 중국어 대화</p>
+</div>
+<div class="flex gap-2 w-full mt-2">
+<button id="btn-modal-retry" class="flex-1 border border-slate-200 hover:bg-slate-50 text-slate-700 py-2.5 rounded-xl text-sm font-bold transition">
+다시 학습하기
+</button>
+<button id="btn-modal-next" class="flex-1 bg-indigo-600 hover:bg-indigo-700 text-white py-2.5 rounded-xl text-sm font-bold shadow-md shadow-indigo-100 transition">
+다음 단원 가기
+</button>
+</div>
+</div>
+</div>
+
+<!-- 푸터 -->
+<footer class="bg-slate-100 border-t border-slate-200 py-6 text-center text-xs text-slate-400 mt-10">
+<p>© 2026 중국어 회화 완벽 정복 학습 프로그램</p>
+<p class="mt-1">한자를 한 글자씩 쪼개어 외우는 효과적인 한자 배열 트레이닝</p>
+</footer>
+
+<!-- 로직 처리를 위한 자바스크립트 -->
+<script>
+// --- 중국어 학습 데이터 ---
+const chapters = [
+{
+id: "ch1",
+badge: "1과",
+title: "중국어 대화 (장웨이 & 미나)",
+sentences: [
+{
+korean: "다음 교시는 무슨 수업이니?",
+pronounce: "시아 이 지에 스 션머 커? (Xià yì jié shì shénme kè?)",
+chinese: "下一节是什么课？",
+split: ["下", "一", "节", "是", "什么", "课", "？"]
+},
+{
+korean: "중국어 수업이야.",
+pronounce: "한위 커. (Hànyǔ kè.)",
+chinese: "汉语课。",
+split: ["汉语", "课", "。"]
+},
+{
+korean: "너는 중국어가 어렵다고 생각하니?",
+pronounce: "니 주에더 한위 난 마? (Nǐ juéde Hànyǔ nán ma?)",
+chinese: "你觉得汉语难吗？",
+split: ["你", "觉得", "汉语", "难", "吗", "？"]
+},
+{
+korean: "시작할 때는 약간 어려웠는데, 갈수록 재미있어져.",
+pronounce: "카이스 더 스호우 요우디아얼 난, 커스 위에라이위에 요우 이스 러. (Kāishǐ de shíhou yǒudiǎnr nán, kěshì yuèláiyuè yǒu yìsi le.)",
+chinese: "开始的时候有点儿难，可是越来越有意思了。",
+split: ["开始", "的", "时候", "有点儿", "难", "，", "可是", "越来越", "有意思", "了", "。"]
+},
+{
+korean: "가장 좋은 건 많이 듣고, 많이 말하고, 많이 쓰는 거야.",
+pronounce: "쭈이하오 두어 팅, 두어 슈어, 두어 시에. (Zuìhǎo duō tīng, duō shuō, duō xiě.)",
+chinese: "最好多听、多说、多写。",
+split: ["最好", "多", "听", "、", "多", "说", "、", "多", "写", "。"]
+},
+{
+korean: "맞아! 첫술에 배부를 수는 없지! (뚱보가 한 입에 될 수는 없지!)",
+pronounce: "두이! 팡쯔 부 스 이코우 처청 더! (Dùi! Pàngzi bú shì yìkǒu chīchéng de!)",
+chinese: "对！胖子不是一口吃成的！",
+split: ["对", "！", "胖子", "不是", "一口", "吃成", "的", "！"]
+}
+],
+tips: [
+{ keyword: "节 (jié)", desc: "수업 시간(교시)을 셀 때 쓰이는 양사입니다." },
+{ keyword: "觉得 (juéde)", desc: "'~라고 생각하다', 자신의 주관적인 의견을 말할 때 사용합니다." },
+{ keyword: "有点儿 (yǒudiǎnr)", desc: "부정적인 성격의 단어(难 등) 앞에서 '약간, 조금'이라는 뉘앙스를 풍깁니다." },
+{ keyword: "越来越~ (yuèláiyuè~)", desc: "'갈수록 ~해지다'라는 의미로 시간이 지날수록 점차 심화됨을 표현합니다." }
+ ]
+},
+{
+id: "ch2",
+badge: "2과",
+title: "자기소개 (왕리)",
+sentences: [
+{
+korean: "여러분 안녕하세요!",
+pronounce: "따지아 하오! (Dàjiā hǎo!)",
+chinese: "大家好！",
+split: ["大家", "好", "！"]
+},
+{
+korean: "여러분들을 알게 되어 매우 기쁩니다.",
+pronounce: "런스 니먼 헌 가오싱. (Rènshi nǐmen hěn gāoxìng.)",
+chinese: "认识你们很高兴。",
+split: ["认识", "你们", "很", "高兴", "。"]
+},
+{
+korean: "제 소개를 좀 하겠습니다.",
+pronounce: "워 라이 쯔워 지에샤오 이시아. (Wǒ lái zìwǒ jièshào yíxià.)",
+chinese: "我来自我介绍一下。",
+split: ["我", "来", "自我", "介绍", "一下", "。"]
+},
+{
+korean: "제 이름은 왕리이고, 올해 열여덟 살입니다.",
+pronounce: "워 찌아오 왕리, 진니엔 스바 쑤이. (Wǒ jiào Wáng Lì, jīnnián shíbā suì.)",
+chinese: "我叫王丽，今年十八岁。",
+split: ["我", "叫", "王丽", "，", "今年", "十八", "岁", "。"]
+},
+{
+korean: "저는 중국 묘족 사람이고, 구이저우에서 왔습니다.",
+pronounce: "워 스 쭝구어 미아오쭈런, 총 구이쵼 라이 더. (Wǒ shì Zhōngguó Miáozúrén, cóng Guìzhōu lái de.)",
+chinese: "我是中国苗族人，从贵州来的。",
+split: ["我", "是", "中国", "苗族人", "，", "从", "贵州", "来", "의", "的", "。"] // Note: "의" is a typo in user's prompt (苗族人，从贵州来的。), let's ensure split has standard Chinese characters
+},
+{
+korean: "많이 지도해 주세요. (잘 부탁드립니다.)",
+pronounce: "칭 두어두어 즈지아오. (Qǐng duōduō zhǐjiào.)",
+chinese: "请多多指教。",
+split: ["请", "多多", "指教", "。"]
+}
+],
+tips: [
+{ keyword: "认识 (rènshi)", desc: "'사람을 알다, 인식하다'는 의미입니다. 길이나 단어를 안다고 할 때도 씁니다." },
+{ keyword: "来 (lái)", desc: "동사 앞에 사용되어 어떤 행동을 자진해서 '내가 하겠다'는 적극적인 의지를 뜻합니다." },
+{ keyword: "一下 (yíxià)", desc: "동사 뒤에 쓰여 가볍게 시도해보는 '한번 ~해보다, 좀 ~하다'라는 느낌을 줍니다." },
+{ keyword: "从~来的 (cóng~láide)", desc: "'~에서 왔다/출신이다'라는 표현으로 출신지를 강조합니다." }
+ ]
+},
+{
+id: "ch3",
+badge: "3과",
+title: "새 학기 안부 인사 (미나 & 장웨이)",
+sentences: [
+{
+korean: "오랜만이야!",
+pronounce: "하오지우 부지엔! (Hǎojiǔ bújiàn!)",
+chinese: "好久不见！",
+split: ["好久", "不见", "！"]
+},
+{
+korean: "너 요즘 어떻게 지내?",
+pronounce: "니 쭈이지인 전메양? (Nǐ zuìjìn zěnmeyàng?)",
+chinese: "你最近怎么样？",
+split: ["你", "最近", "怎么样", "？"]
+},
+{
+korean: "아주 잘 지내, 그냥 막 개학했을 뿐이야.",
+pronounce: "팅 하오 더, 즈스 가잉 카이슈에. (Tǐng hǎo de, zhǐshì gāng kāixué,)",
+chinese: "挺好的，只是刚开学，",
+split: ["挺", "好的", "，", "只是", "刚", "开学", "，"]
+},
+{
+korean: "매일 모두 아주 일찍 일어나서, 난 아직 적응이 안 돼.",
+pronounce: "메이티엔 도우 헌 자오 치추앙, 워 하이 부 시구안. (měitiān dōu hěn zǎo qǐchuáng, wǒ hái bù xíguàn.)",
+chinese: "每天都很早起床，我还不习惯。",
+split: ["每天", "都", "很早", "起床", "，", "我", "还", "不", "习惯", "。"]
+},
+{
+korean: "조급해하지 마. 천천히 하면 곧 익숙해질 거야.",
+pronounce: "비에 쟈오지. 만마얼 회이 시구안 더. (Bié zháojí. Mànmānr huì xíguàn de.)",
+chinese: "别着急。慢慢儿会习惯的。",
+split: ["别", "着急", "。", "慢慢儿", "会", "习惯", "的", "内"] // Fix typo: "的"
+},
+{
+korean: "고마워!",
+pronounce: "시에시에 니! (Xièxie nǐ!)",
+chinese: "谢谢你！",
+split: ["谢谢", "你", "！"]
+}
+],
+tips: [
+{ keyword: "挺~的 (tǐng~de)", desc: "'꽤 ~, 상당히 ~하다'라는 뜻으로 很보다 구어적인 느낌이 강합니다." },
+{ keyword: "只是 (zhǐshì)", desc: "가벼운 전환을 나타내며 '단지 ~일 뿐이다'라는 뉘앙스로 제한합니다." },
+{ keyword: "刚 (gāng)", desc: "'막, 방금'이라는 뜻의 부사로, 동작이 일어난 지 얼마 되지 않았음을 나타냅니다." },
+{ keyword: "别 (bié)", desc: "동사 앞에 놓여서 '~하지 마라'라는 강력한 금지를 뜻합니다." }
+ ]
+}
+];
+
+// 일부 오타가 있을 수 있는 split 데이터 표준화 (한글 찌꺼기 등 제거)
+chapters[1].sentences[4].split = ["我", "是", "中国", "苗族人", "，", "从", "贵州", "来", "的", "。"];
+chapters[2].sentences[4].split = ["别", "着急", "。", "慢慢儿", "会", "习惯", "的", "。"];
+
+// --- 앱 상태 관리 변수 ---
+let currentChapterIndex = 0;
+let currentQuestionIndex = 0;
+let assembledWords = []; // 조립대에 올라온 카드 정보 { id: uniqueId, text: 한자텍스트 }
+let sourceWords = []; // 카드 풀에 있는 카드 정보 { id: uniqueId, text: 한자텍스트 }
+let successCount = 0;
+let cardCounter = 0; // 고유 ID 생성을 위한 카운터
+
+// --- DOM 요소 참조 ---
+const chapterSelect = document.getElementById('chapter-select');
+const chapterBadge = document.getElementById('chapter-badge');
+const chapterTitle = document.getElementById('chapter-title');
+const progressBar = document.getElementById('progress-bar');
+const progressText = document.getElementById('progress-text');
+const scoreCounter = document.getElementById('score-counter');
+
+const successOverlay = document.getElementById('success-overlay');
+const successBox = document.getElementById('success-box');
+const questionIndexEl = document.getElementById('question-index');
+
+const koreanMeaning = document.getElementById('korean-meaning');
+const koreanPronounce = document.getElementById('korean-pronounce');
+const btnPronounce = document.getElementById('btn-pronounce');
+const btnHint = document.getElementById('btn-hint');
+const btnReset = document.getElementById('btn-reset');
+
+const assemblyZone = document.getElementById('assembly-zone');
+const placeholderText = document.getElementById('placeholder-text');
+const wordsSourceZone = document.getElementById('words-source-zone');
+const hintDisplay = document.getElementById('hint-display');
+const hintText = document.getElementById('hint-text');
+
+const validationMessage = document.getElementById('validation-message');
+const btnCheck = document.getElementById('btn-check');
+const btnNext = document.getElementById('btn-next');
+
+const btnPrevQuestion = document.getElementById('btn-prev-question');
+const btnNextQuestion = document.getElementById('btn-next-question');
+const questionDots = document.getElementById('question-dots');
+const grammarTips = document.getElementById('grammar-tips');
+
+const congratulationsModal = document.getElementById('congratulations-modal');
+const modalChapterName = document.getElementById('modal-chapter-name');
+const btnModalRetry = document.getElementById('btn-modal-retry');
+const btnModalNext = document.getElementById('btn-modal-next');
+
+// --- 배열 무작위 셔플 함수 ---
+function shuffleArray(array) {
+const arr = [...array];
+for (let i = arr.length - 1; i > 0; i--) {
+const j = Math.floor(Math.random() * (i + 1));
+[arr[i], arr[j]] = [arr[j], arr[i]];
+}
+return arr;
+}
+
+// --- 초기화 및 문제 로드 기능 ---
+function initApp() {
+// 이벤트 리스너 설정
+chapterSelect.addEventListener('change', (e) => {
+changeChapter(parseInt(e.target.value));
+});
+
+btnPronounce.addEventListener('click', togglePronounce);
+btnHint.addEventListener('click', toggleHint);
+btnReset.addEventListener('click', resetCurrentQuestion);
+btnCheck.addEventListener('click', checkAnswer);
+btnNext.addEventListener('click', goToNextQuestion);
+
+btnPrevQuestion.addEventListener('click', () => navigateQuestion(-1));
+btnNextQuestion.addEventListener('click', () => navigateQuestion(1));
+
+btnModalRetry.addEventListener('click', restartChapter);
+btnModalNext.addEventListener('click', progressToNextChapter);
+
+// 키보드 대응 및 드래그 관련 전역 리스너는 조각이 동적으로 생성될 때 바인딩합니다.
+loadChapter(0);
+}
+
+// 단원 변경
+function changeChapter(index) {
+currentChapterIndex = index;
+currentQuestionIndex = 0;
+successCount = 0;
+scoreCounter.textContent = successCount;
+loadChapter(index);
+}
+
+// 단원 정보 로드
+function loadChapter(chapterIndex) {
+const chapter = chapters[chapterIndex];
+
+chapterBadge.textContent = chapter.badge;
+chapterTitle.textContent = chapter.title;
+chapterSelect.value = chapterIndex;
+
+// 도트 네비게이션 생성
+questionDots.innerHTML = '';
+chapter.sentences.forEach((_, idx) => {
+const dot = document.createElement('button');
+dot.className = w-2.5 h-2.5 rounded-full transition-all duration-300 ${idx === currentQuestionIndex ? 'bg-indigo-600 w-6' : 'bg-slate-300 hover:bg-slate-400'}; dot.title =문제 ${idx + 1};
+dot.addEventListener('click', () => {
+currentQuestionIndex = idx;
+loadQuestion();
+});
+questionDots.appendChild(dot);
+});
+
+// 그래머 팁 주입
+grammarTips.innerHTML = '';
+chapter.tips.forEach(tip => {
+const tipEl = document.createElement('div');
+tipEl.className = "p-3 bg-slate-50 border border-slate-100 rounded-xl";
+tipEl.innerHTML = &lt;h4 class="text-xs font-bold text-indigo-600 mb-0.5"&gt;${tip.keyword}</h4>
+<p class="text-xs text-slate-600 leading-relaxed">${tip.desc}&lt;/p&gt;;
+grammarTips.appendChild(tipEl);
+});
+
+loadQuestion();
+}
+
+// 특정 문제 로드
+function loadQuestion() {
+const chapter = chapters[currentChapterIndex];
+const question = chapter.sentences[currentQuestionIndex];
+
+// 네비게이션 도트 활성화 상태 변경
+const dots = questionDots.children;
+for (let i = 0; i < dots.length; i++) {
+if (i === currentQuestionIndex) {
+dots[i].className = 'w-2.5 h-2.5 rounded-full bg-indigo-600 w-6 transition-all duration-300';
+} else {
+dots[i].className = 'w-2.5 h-2.5 rounded-full bg-slate-300 hover:bg-slate-400 transition-all duration-300';
+}
+}
+
+// UI 텍스트 채우기
+questionIndexEl.textContent = 문제 ${currentQuestionIndex + 1} / ${chapter.sentences.length};
+koreanMeaning.textContent = question.korean;
+koreanPronounce.textContent = question.pronounce;
+
+// 가독성 설정 기본값으로 리셋
+koreanPronounce.classList.add('hidden');
+btnPronounce.classList.remove('bg-indigo-50', 'text-indigo-600');
+btnPronounce.classList.add('bg-slate-50', 'text-slate-600');
+
+hintDisplay.classList.add('hidden');
+hintText.textContent = question.chinese;
+btnHint.classList.remove('bg-amber-50', 'text-amber-700');
+btnHint.classList.add('bg-slate-50', 'text-slate-600');
+
+// 이전/다음 질문 이동 버튼 비활성화 처리
+btnPrevQuestion.disabled = currentQuestionIndex === 0;
+btnPrevQuestion.className = text-xs font-bold flex items-center gap-1 py-1.5 px-3 rounded-lg transition ${currentQuestionIndex === 0 ? 'text-slate-300 cursor-not-allowed' : 'text-slate-500 hover:text-slate-800 hover:bg-slate-100'}`;
+
+const isLast = currentQuestionIndex === chapter.sentences.length - 1;
+btnNextQuestion.disabled = isLast;
+btnNextQuestion.className = text-xs font-bold flex items-center gap-1 py-1.5 px-3 rounded-lg transition${isLast ? 'text-slate-300 cursor-not-allowed' : 'text-slate-500 hover:text-slate-800 hover:bg-slate-100'}`;
+
+// 진행도 표시 업데이트
+const progressPercent = ((currentQuestionIndex) / chapter.sentences.length) * 100;
+progressBar.style.width = ${progressPercent}%; progressText.textContent = ``${currentQuestionIndex}/${chapter.sentences.length}`;
+
+// 상태 메시지 및 검사 결과 리셋
+validationMessage.innerHTML = '';
+btnCheck.classList.remove('hidden');
+btnNext.classList.add('hidden');
+
+// 카드 데이터 구성하기
+assembledWords = [];
+sourceWords = [];
+cardCounter = 0;
+
+// 단어를 셔플하여 소스에 할당
+const shuffled = shuffleArray(question.split);
+shuffled.forEach(word => {
+sourceWords.push({
+id: card-${cardCounter++}`,
+text: word
+});
+});
+
+renderCards();
+}
+
+// 카드 렌더링 및 드래그앤드롭 이벤트 리스너 바인딩
+function renderCards() {
+// 1. 소스 영역(대기실) 카드 렌더링
+wordsSourceZone.innerHTML = '';
+if (sourceWords.length === 0) {
+wordsSourceZone.innerHTML = '<span class="text-slate-300 text-xs py-3 select-none">카드가 모두 사용되었습니다.</span>';
+} else {
+sourceWords.forEach(card => {
+const cardEl = createCardElement(card, 'source');
+wordsSourceZone.appendChild(cardEl);
+});
+}
+
+// 2. 조립 영역 카드 렌더링
+// 조립 영역 내 기존의 카드 엘리먼트 제거
+const existingCards = assemblyZone.querySelectorAll('.draggable-card');
+existingCards.forEach(c => c.remove());
+
+if (assembledWords.length === 0) {
+placeholderText.style.display = 'block';
+} else {
+placeholderText.style.display = 'none';
+assembledWords.forEach((card, index) => {
+const cardEl = createCardElement(card, 'assembly', index);
+assemblyZone.appendChild(cardEl);
+});
+}
+}
+
+// 개별 카드 엘리먼트 생성
+function createCardElement(card, type, index) {
+const el = document.createElement('div');
+el.id = card.id;
+el.className = draggable-card bg-white px-4 py-2.5 rounded-xl border-2 border-slate-200 text-slate-800 font-bold text-lg shadow-sm cursor-pointer hover:border-indigo-400 select-none flex items-center justify-center min-w-[50px] text-center chinese-font transition-all;
+el.textContent = card.text;
+el.setAttribute('draggable', 'true');
+
+// 모바일 친화적인 클릭/탭 방식 이동 구현
+el.addEventListener('click', () => {
+if (type === 'source') {
+// 대기실 -> 조립 영역 이동
+sourceWords = sourceWords.filter(c => c.id !== card.id);
+assembledWords.push(card);
+} else {
+// 조립 영역 -> 대기실 이동
+assembledWords = assembledWords.filter(c => c.id !== card.id);
+sourceWords.push(card);
+}
+renderCards();
+clearValidation();
+});
+
+// --- 드래그 앤 드롭 API 구현 ---
+el.addEventListener('dragstart', (e) => {
+e.dataTransfer.setData('text/plain', card.id);
+e.dataTransfer.effectAllowed = 'move';
+setTimeout(() => {
+el.classList.add('ghost');
+}, 0);
+});
+
+el.addEventListener('dragend', () => {
+el.classList.remove('ghost');
+});
+
+return el;
+}
+
+// 조립 영역 드래그 앤 드롭 목적지 설정
+assemblyZone.addEventListener('dragover', (e) => {
+e.preventDefault();
+e.dataTransfer.dropEffect = 'move';
+});
+
+assemblyZone.addEventListener('drop', (e) => {
+e.preventDefault();
+const cardId = e.dataTransfer.getData('text/plain');
+
+// 대기 구역에서 드랍한 경우
+const sourceCardIndex = sourceWords.findIndex(c => c.id === cardId);
+if (sourceCardIndex !== -1) {
+const card = sourceWords[sourceCardIndex];
+sourceWords.splice(sourceCardIndex, 1);
+assembledWords.push(card);
+renderCards();
+clearValidation();
+return;
+}
+
+// 조립 구역 내부에서의 드래그 정렬 처리 (정밀 마우스 오버에 의한 이동 지원)
+const targetElement = e.target.closest('.draggable-card');
+if (targetElement && targetElement.parentNode === assemblyZone) {
+const dragCardIndex = assembledWords.findIndex(c => c.id === cardId);
+const targetCardId = targetElement.id;
+const targetCardIndex = assembledWords.findIndex(c => c.id === targetCardId);
+
+if (dragCardIndex !== -1 && targetCardIndex !== -1 && dragCardIndex !== targetCardIndex) {
+// 배열 원소 순서 바꾸기
+const [draggedItem] = assembledWords.splice(dragCardIndex, 1);
+assembledWords.splice(targetCardIndex, 0, draggedItem);
+renderCards();
+clearValidation();
+}
+}
+});
+
+// 대기 영역 드롭 백 (조립 구역에서 되돌려 놓기)
+wordsSourceZone.addEventListener('dragover', (e) => {
+e.preventDefault();
+e.dataTransfer.dropEffect = 'move';
+});
+
+wordsSourceZone.addEventListener('drop', (e) => {
+e.preventDefault();
+const cardId = e.dataTransfer.getData('text/plain');
+const assembledCardIndex = assembledWords.findIndex(c => c.id === cardId);
+
+if (assembledCardIndex !== -1) {
+const card = assembledWords[assembledCardIndex];
+assembledWords.splice(assembledCardIndex, 1);
+sourceWords.push(card);
+renderCards();
+clearValidation();
+}
+});
+
+// --- 가독성 보조 기능들 ---
+
+// 발음 토글
+function togglePronounce() {
+const isHidden = koreanPronounce.classList.contains('hidden');
+if (isHidden) {
+koreanPronounce.classList.remove('hidden');
+btnPronounce.classList.add('bg-indigo-50', 'text-indigo-600');
+btnPronounce.classList.remove('bg-slate-50', 'text-slate-600');
+} else {
+koreanPronounce.classList.add('hidden');
+btnPronounce.classList.remove('bg-indigo-50', 'text-indigo-600');
+btnPronounce.classList.add('bg-slate-50', 'text-slate-600');
+}
+}
+
+// 힌트 토글
+function toggleHint() {
+const isHidden = hintDisplay.classList.contains('hidden');
+if (isHidden) {
+hintDisplay.classList.remove('hidden');
+btnHint.classList.add('bg-amber-50', 'text-amber-700');
+btnHint.classList.remove('bg-slate-50', 'text-slate-600');
+} else {
+hintDisplay.classList.add('hidden');
+btnHint.classList.remove('bg-amber-50', 'text-amber-700');
+btnHint.classList.add('bg-slate-50', 'text-slate-600');
+}
+}
+
+// 문제 초기화
+function resetCurrentQuestion() {
+loadQuestion();
+}
+
+// 검증 중 문자가 바뀌면 에러창 지움
+function clearValidation() {
+validationMessage.innerHTML = '';
+}
+
+// --- 정답 판정 메커니즘 ---
+function checkAnswer() {
+const chapter = chapters[currentChapterIndex];
+const question = chapter.sentences[currentQuestionIndex];
+const correctAnswer = question.chinese;
+
+// 조립한 단어 문자열 합치기
+const assembledAnswer = assembledWords.map(c => c.text).join('');
+
+if (assembledAnswer.length === 0) {
+validationMessage.innerHTML = &lt;span class="text-amber-600 flex items-center gap-1"&gt; &lt;i class="fa-solid fa-triangle-exclamation"&gt;&lt;/i&gt; 먼저 한자 카드를 조립해 주세요! &lt;/span&gt;;
+return;
+}
+
+// 공백 및 미세 오타 보정하여 정답 검증
+const cleanAssembled = assembledAnswer.replace(/\s+/g, '');
+const cleanCorrect = correctAnswer.replace(/\s+/g, '');
+
+if (cleanAssembled === cleanCorrect) {
+// 정답 성공!
+validationMessage.innerHTML = &lt;span class="text-emerald-600 flex items-center gap-1.5 animate-pulse"&gt; &lt;i class="fa-solid fa-circle-check text-base"&gt;&lt;/i&gt; 아주 훌륭한 정답입니다! &lt;/span&gt;;
+
+// 피드백 오버레이 보이기
+successOverlay.classList.remove('opacity-0');
+successOverlay.classList.add('pointer-events-auto');
+successBox.classList.remove('scale-90');
+successBox.classList.add('scale-100');
+
+// 성공 사운드 대용 이펙트
+setTimeout(() => {
+successOverlay.classList.remove('pointer-events-auto');
+successOverlay.classList.add('opacity-0');
+successBox.classList.remove('scale-100');
+successBox.classList.add('scale-90');
+
+btnCheck.classList.add('hidden');
+btnNext.classList.remove('hidden');
+
+// 성공 수 증가
+successCount++;
+scoreCounter.textContent = successCount;
+}, 1200);
+
+} else {
+// 오답 처리
+validationMessage.innerHTML = &lt;span class="text-rose-600 flex items-center gap-1.5"&gt; &lt;i class="fa-solid fa-circle-xmark text-base"&gt;&lt;/i&gt; 순서가 잘못되었습니다. 다시 시도해 보세요. &lt;/span&gt;;
+// 틀린 상태 표시용 시각적 흔들기 효과 추가
+assemblyZone.classList.add('bg-rose-50', 'border-rose-300');
+setTimeout(() => {
+assemblyZone.classList.remove('bg-rose-50', 'border-rose-300');
+}, 1000);
+}
+}
+
+// 다음 문제로 이동
+function goToNextQuestion() {
+const chapter = chapters[currentChapterIndex];
+
+if (currentQuestionIndex < chapter.sentences.length - 1) {
+currentQuestionIndex++;
+loadQuestion();
+} else {
+// 모든 문제를 맞췄을 때 최종 정복 모달창 전시
+showCongratulations();
+}
+}
+
+// 질문 직접 네비게이션
+function navigateQuestion(direction) {
+const chapter = chapters[currentChapterIndex];
+const targetIndex = currentQuestionIndex + direction;
+
+if (targetIndex >= 0 && targetIndex < chapter.sentences.length) {
+currentQuestionIndex = targetIndex;
+loadQuestion();
+}
+}
+
+// --- 정복 완료 축하 모달 처리 ---
+function showCongratulations() {
+const chapter = chapters[currentChapterIndex];
+modalChapterName.textContent = ${chapter.badge}: ${chapter.title};
+
+// 다음 과가 없는 경우 텍스트 바꿈
+if (currentChapterIndex >= chapters.length - 1) {
+btnModalNext.textContent = "첫 단원부터 복습하기";
+} else {
+btnModalNext.textContent = "다음 단원 가기";
+}
+
+congratulationsModal.classList.remove('hidden');
+setTimeout(() => {
+congratulationsModal.querySelector('.scale-95').className = congratulationsModal.querySelector('.scale-95').className.replace('scale-95', 'scale-100');
+}, 50);
+}
+
+// 챕터 재도전
+function restartChapter() {
+congratulationsModal.classList.add('hidden');
+successCount = 0;
+scoreCounter.textContent = successCount;
+currentQuestionIndex = 0;
+loadChapter(currentChapterIndex);
+}
+
+// 다음 챕터로 진행
+function progressToNextChapter() {
+congratulationsModal.classList.add('hidden');
+if (currentChapterIndex < chapters.length - 1) {
+changeChapter(currentChapterIndex + 1);
+} else {
+// 첫 챕터로 순환
+changeChapter(0);
+}
+}
+
+// 앱 실행 및 바인딩
+window.onload = function() {
+initApp();
+};
+</script>
+</body>
+</html>
